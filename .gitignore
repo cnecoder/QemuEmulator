@@ -1,0 +1,26 @@
+# ===== 大体积二进制与运行时产物（均可由脚本重建） =====
+
+# 云镜像 / 磁盘镜像 / 快照（用 p0/scripts/01_fetch_image.sh 重新下载）
+p0/images/
+p0/run/
+p1/run/
+
+# QEMU 源码与编译产物（用 p1/scripts/10_build.sh 重建：需先下载 qemu-9.2.0.tar.xz）
+p1/build/
+p1/src/
+
+# 日志
+p0/logs/
+p1/logs/
+
+# SSH 私钥（仅本地虚拟机测试用；公钥 .pub 保留）
+p0/keys/id_ed25519
+p0/keys/id_ed25519.pub
+p0/keys/known_hosts
+p0/keys/known_hosts.old
+
+# 系统杂物
+.DS_Store
+*.swp
+# cloud-init seed ISO（可由 02_make_seed.sh 重建）
+p0/seed/seed.iso

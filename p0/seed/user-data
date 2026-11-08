@@ -1,0 +1,68 @@
+#cloud-config
+hostname: arm64-p0
+users:
+  - name: test
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKS9rXw75IUFp5HsasMmyRR90aCxxpf247sdmmeAPJd7 p0-test
+ssh_pwauth: false
+package_update: true
+package_upgrade: false
+packages:
+  - linux-modules-extra-generic
+write_files:
+  - path: /usr/local/sbin/wmodem-provision.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # 虚拟蜂窝模块置备（幂等）: 解绑抢占驱动 -> option new_id -> rndis_host
+      for i in $(seq 1 15); do
+        ls /sys/bus/usb/devices/ 2>/dev/null | grep -q '^1-1:1' && break
+        sleep 1
+      done
+      # 1) 解绑抢占 0xff 串口接口的驱动（usbtouchscreen 按接口类 0xff 整类匹配）
+      for IF in /sys/bus/usb/devices/1-1:1.0 /sys/bus/usb/devices/1-1:1.1 /sys/bus/usb/devices/1-1:1.2; do
+        [ -d "$IF" ] || continue
+        drv=$(basename "$(readlink -f "$IF/driver" 2>/dev/null)" 2>/dev/null)
+        if [ -n "$drv" ] && [ "$drv" != "option" ]; then
+          echo "$(basename "$IF")" > "/sys/bus/usb/drivers/$drv/unbind" 2>/dev/null
+        fi
+      done
+      # 2) option 驱动 + 动态 VID/PID（缺模块则按需安装）
+      D=/sys/bus/usb-serial/drivers/option1; [ -d "$D" ] || D=/sys/bus/usb-serial/drivers/option
+      if ! [ -d "$D" ]; then
+        apt-get update -qq >/dev/null 2>&1
+        apt-get install -y -qq linux-modules-extra-"$(uname -r)" >/dev/null 2>&1
+        modprobe option 2>/dev/null
+      else
+        modprobe option 2>/dev/null
+      fi
+      [ -d "$D" ] && echo "1234 5678" > "$D/new_id" 2>/dev/null
+      # 3) 假节点防护：非字符设备的 ttyUSB 一律删除；内核已注册而节点缺失的补建
+      sleep 1
+      for t in /dev/ttyUSB*; do [ -e "$t" ] && [ ! -c "$t" ] && rm -f "$t"; done
+      for t in /sys/class/tty/ttyUSB*; do
+        b=$(basename "$t"); dm=$(cat "$t/dev" 2>/dev/null)
+        [ -n "$dm" ] && [ ! -c "/dev/$b" ] && mknod "/dev/$b" c ${dm%:*} ${dm#*:}
+      done
+      # 4) RNDIS 接口驱动修正（usbtouchscreen 会抢 0xEF/0x02/0x01 与 0x0A 接口）
+      modprobe rndis_host 2>/dev/null
+      for IF in 1-1:1.3 1-1:1.4; do
+        drv=$(basename "$(readlink -f "/sys/bus/usb/devices/$IF/driver" 2>/dev/null)" 2>/dev/null)
+        if [ -n "$drv" ] && [ "$drv" != "rndis_host" ]; then
+          echo "$IF" > "/sys/bus/usb/drivers/$drv/unbind" 2>/dev/null
+        fi
+      done
+      sleep 1
+      [ -e /sys/bus/usb/devices/1-1:1.3/driver ] || \
+        echo 1-1:1.3 > /sys/bus/usb/drivers/rndis_host/bind 2>/dev/null
+      sleep 2
+      logger -t wmodem-provision "ttyUSB: $(ls /dev/ttyUSB* 2>/dev/null | tr '\n' ' ')"
+      exit 0
+runcmd:
+  - /usr/local/sbin/wmodem-provision.sh
+  - touch /var/lib/p0-boot-done
+final_message: "P0_CLOUD_INIT_DONE after $UPTIME seconds"

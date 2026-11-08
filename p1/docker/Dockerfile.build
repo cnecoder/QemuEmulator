@@ -1,0 +1,20 @@
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+# QEMU 9.2 aarch64-softmmu 最小构建依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        meson \
+        ninja-build \
+        pkg-config \
+        python3 \
+        python3-venv \
+        git \
+        ca-certificates \
+        xz-utils \
+        libglib2.0-dev \
+        libpixman-1-dev \
+        zlib1g-dev \
+        libfdt-dev \
+        libslirp-dev \
+        qemu-efi-aarch64 \
+    && rm -rf /var/lib/apt/lists/*
