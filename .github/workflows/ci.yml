@@ -1,0 +1,34 @@
+# ARM64 + USB 蜂窝模拟环境 —— 全量回归（无 KVM，纯 TCG）
+# 手动触发: gh workflow run ci 或 Actions 页面 Run workflow
+# 说明: 首次运行约 40-60 分钟（镜像下载 + guest 内 apt 置备），
+#       建议配合 actions/cache 缓存 p0/images 与 overlay。
+name: regression
+on:
+  workflow_dispatch:
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CI image (compile custom QEMU + bundle env)
+        run: docker build -t qemuemulator-ci -f ci/Dockerfile .
+      - name: Cache golden image + overlay
+        uses: actions/cache@v4
+        with:
+          path: |
+            p0/images
+            p1/run
+          key: golden-noble-arm64-v1
+      - name: Run full regression (32 tests)
+        run: |
+          mkdir -p p0/images
+          docker run --rm --network host \
+            -v "$PWD":/lab \
+            qemuemulator-ci bash /lab/ci/run_ci.sh
+      - name: Publish junit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-report
+          path: p1/reports/junit.xml

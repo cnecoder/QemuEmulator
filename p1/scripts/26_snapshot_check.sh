@@ -21,7 +21,7 @@ python3 ../p0/scripts/qmp_savevm.py run/qmp.sock p1snap || { bad "savevm 失败"
 ok "快照写入"
 
 step "[3/4] 停机 → loadvm 重启"
-docker stop -t 15 p1-vm >/dev/null
+bash "$(dirname "${BASH_SOURCE[0]}")/vm_stop.sh" >/dev/null
 T0=$(date +%s)
 bash scripts/20_run_vm.sh --loadvm p1snap
 sleep 8

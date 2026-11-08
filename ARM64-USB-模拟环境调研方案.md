@@ -7,6 +7,7 @@
 > v3.2 变更：**路线 C 重估并升级为 P1 首选**（新增设计草图与四级验收阶梯）；G/形态三转为备选与对冲。
 > v3.3 变更：**P1 路线 C 骨架 PoC 全绿**（附录 B）——定制 VID/PID 复合设备枚举、option 驱动绑定、AT 经 USB 串口往返全部打通；路线 C 的可行性得到实测证实。
 > v3.4 变更：**P1续 全部完成（附录 C）**——复合设备 v2（3×option 串口 + RNDIS，in00-04 固定编号）、RNDIS 真实 DHCP + 互联网、置备自动化（黑名单+顺序置备）、快照兼容（VMSTATE_USB_DEVICE）。P1 全量 15/15 全绿 + 快照 6/6 全绿。P3 AI 闭环的全部前置条件就绪。
+> v3.6 变更：**P3 AI 闭环落地（附录 E）**——envctl 统一 CLI（up/provision/verify/snap/restore/engine/scenario/at/test）、pytest 用例层 32 例（设备/AT/场景/数据面四组，junit 报告）、QEMU_DIRECT 直跑模式（CI 容器内无 docker 依赖）、ci/Dockerfile + GitHub Actions workflow。回归 32/32 全绿（7.5 分钟）。
 > v3.5 变更：**P2 场景引擎落地（附录 D）**——AT 引擎升级为运营商状态机（SIM/注册/附着三轴 + URC），控制 API（JSON over unix socket），数据面联动（QMP set_link 真断网 + filter-buffer 弱网注入）；修复双 slirp 同网段冲突（wnet 独立 10.0.3.0/24）。**P2 验收 22/22 全绿。**
 
 ---
@@ -398,6 +399,38 @@ appliance VM(内跑复合 gadget) ──usbip(TCP)──► WSL2: modprobe vhci_
 | RNDIS 网口 | ✅ | `enx525400123457`（usbnet 命名） |
 | **RNDIS 真实 DHCP + 互联网** | ✅ | DHCP 获 10.0.2.15 → HTTP 200（经 RNDIS 口） |
 | savevm/loadvm × USB 设备 | ✅ | savevm 1.3-1.5s、loadvm 8s、标记/串口/绑定/**AT 会话**全部恢复 |
+
+---
+
+## 附录 E：P3 AI 闭环记录（WSL2，2026-11-09）
+
+**交付**：
+- `p1/envctl.py` —— 统一控制台：`up / provision / verify / snap / restore / engine / scenario / set_signal / set_link / set_delay / inject_urc / at / status / stop / test`，把散落脚本收敛为一条命令入口
+- `p1/tests/` —— pytest 用例层 32 例（4 组）：设备层（枚举/in 字段/多串口/RNDIS 网口）、AT 基本流程（TS 27.007 子集+错误路径+厂商扩展）、场景矩阵（拔卡/搜网/拒绝/去附着/飞行模式+URC 投递+信号/弱网注入）、数据面（DHCP/网关/真实联网/USB 计数增长）
+- `p1/scripts/provision.sh` —— 置备逻辑抽取共享（25/envctl/seed 三方统一）
+- `20_run_vm.sh` 双模式重构：容器模式（WSL/宿主）+ **QEMU_DIRECT 直跑模式**（CI 容器内无 docker 依赖），同路径挂载统一；`vm_stop.sh` 模式自适应停机
+- `ci/Dockerfile`（多阶段：编译自定义 QEMU → 打包运行时）+ `.github/workflows/ci.yml`（workflow_dispatch，junit 产物上传）
+
+**验收**：P1 15/15 + P2 22/22 + **pytest 32/32 全绿（7 分 27 秒）**，junit 报告落 `p1/reports/junit.xml`。
+
+**测试稳定性工程**（TCG 时序抖动的吸收手段，供 AI 闭环复用）：
+1. `at_client.py`：非阻塞写+重试（重枚举窗口防 write 阻塞）、打开端口后先收取残留（URC 不丢）、OK/ERROR+静默判定退出
+2. `conftest.at()`：无效响应（无 OK/ERROR）自动重试 2 次
+3. `modem` fixture：用例结束自动恢复 normal 场景
+4. URC 捕获窗口与命令收发分时（python 启动在 TCG 下需 2-4s 预热）
+
+**经验**：
+1. 网关回包"假阳性"三连（DHCP/DNS/200 各自走过不同接口）——连通性断言必须绑定被测接口
+2. overlay backing 路径变更用 `qemu-img rebase -u -b <new> -F qcow2` 无损迁移
+3. 精简 QEMU 参数时漏 `-device qemu-xhci` → USB 设备无总线挂靠（启动即退）——参数改动后跑 `qemu -device help`+冒烟
+
+**AI 自闭环用法**（P3 达成标志）：
+```
+python3 p1/envctl.py up            # 拉起（幂等）
+python3 p1/envctl.py test          # 全量回归 → junit 报告
+python3 p1/envctl.py scenario no_sim && python3 p1/envctl.py at "AT+CPIN?"   # 场景实验
+python3 p1/envctl.py restore <tag> # 秒级复位重跑
+```
 
 **本轮关键发现（比附录 B 更深一层）**：
 
