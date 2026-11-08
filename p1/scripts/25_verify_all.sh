@@ -10,6 +10,9 @@ ok()   { echo "  ✓ $1"; PASS=$((PASS+1)); }
 bad()  { echo "  ✗ $1"; FAIL=$((FAIL+1)); }
 
 step "[0/5] 置备（幂等：黑名单抢占驱动 → 顺序置备 → 重新枚举）"
+pkill -f "wm_scenario_engine.py" 2>/dev/null || true
+pkill -f "21_at_responder" 2>/dev/null || true
+sleep 1
 ssh $SSH_OPTS test@127.0.0.1 'sudo bash -s' <<'PROV' >/dev/null 2>&1
 for i in $(seq 1 15); do ls /sys/bus/usb/devices/ 2>/dev/null | grep -q '^1-1:1' && break; sleep 1; done
 # 1) 防抢占：usbtouchscreen 会认领 0xff/0xEF/0x0A 接口 —— 黑名单阻止 modalias 自动加载
@@ -28,7 +31,9 @@ modprobe rndis_host 2>/dev/null
 echo 0 > /sys/bus/usb/devices/1-1/authorized
 sleep 1
 echo 1 > /sys/bus/usb/devices/1-1/authorized
-sleep 2
+# 等待重新枚举完成（TCG 下可能 >10s，五个接口全部回来）
+for i in $(seq 1 20); do [ -d /sys/bus/usb/devices/1-1:1.4 ] && break; sleep 1; done
+sleep 1
 modprobe option 2>/dev/null
 [ -d "$D" ] && echo "1234 5678" > "$D/new_id" 2>/dev/null
 sleep 1
@@ -38,13 +43,14 @@ for t in /sys/class/tty/ttyUSB*; do
   b=$(basename "$t"); dm=$(cat "$t/dev" 2>/dev/null)
   [ -n "$dm" ] && [ ! -c "/dev/$b" ] && mknod "/dev/$b" c ${dm%:*} ${dm#*:}
 done
-# 5) 轮询就绪: 3 个串口字符节点 + RNDIS 网口（最多 60s，TCG 下驱动探测可能偏慢）
+# 5) 轮询就绪: 3 个串口字符节点 + RNDIS 网口（最多 60s；未绑定时重试 new_id）
 for i in $(seq 1 60); do
   ready=1
   for t in /dev/ttyUSB0 /dev/ttyUSB1 /dev/ttyUSB2; do [ -c "$t" ] || ready=0; done
   rndis_net=0
   for n in /sys/class/net/*; do readlink -f "$n/device" 2>/dev/null | grep -q "1-1:1.3" && rndis_net=1; done
   [ "$ready" = "1" ] && [ "$rndis_net" = "1" ] && break
+  [ "$ready" = "0" ] && [ -d "$D" ] && echo "1234 5678" > "$D/new_id" 2>/dev/null
   sleep 1
 done
 exit 0
@@ -88,12 +94,12 @@ step "[4/5] RNDIS 数据面: DHCP + 真实联网"
 NETOUT=$(ssh $SSH_OPTS test@127.0.0.1 "
 sudo dhclient -1 $NETIF 2>/dev/null; sleep 1
 ip -4 addr show $NETIF | grep inet
-ping -c1 -W3 10.0.2.2 >/dev/null 2>&1 && echo GW_OK
+ping -c1 -W3 10.0.3.2 >/dev/null 2>&1 && echo GW_OK
 if command -v curl >/dev/null; then curl -s -m 15 -o /dev/null -w '%{http_code}' http://www.baidu.com
 elif command -v wget >/dev/null; then wget -q -T 15 -O /dev/null http://www.baidu.com && echo 200
 else echo NO_TOOL; fi")
 echo "$NETOUT"
-echo "$NETOUT" | grep -q "inet 10\.0\.2\.15" && ok "DHCP 获得 10.0.2.15" || bad "DHCP 失败"
+echo "$NETOUT" | grep -q "inet 10\.0\.3\.15" && ok "DHCP 获得 10.0.3.15" || bad "DHCP 失败"
 echo "$NETOUT" | grep -q "GW_OK" && ok "网关可达" || bad "网关不通"
 echo "$NETOUT" | grep -q "200" && ok "真实互联网 HTTP 200" || bad "互联网不通"
 

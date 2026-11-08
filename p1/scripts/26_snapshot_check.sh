@@ -10,6 +10,8 @@ ok()   { echo "  ✓ $1"; PASS=$((PASS+1)); }
 bad()  { echo "  ✗ $1"; FAIL=$((FAIL+1)); }
 
 step "[1/4] 快照前: 置备 + 写标记 + AT 确认"
+pkill -f "wm_scenario_engine.py" 2>/dev/null || true
+sleep 1
 bash scripts/25_verify_all.sh 2>&1 | grep -E "^===|✓|✗|ALL_GREEN|HAS_FAILURES" | tail -3
 ssh $SSH_OPTS test@127.0.0.1 'echo "before-snapshot $(date)" | sudo tee /var/tmp/p1-marker >/dev/null; cat /proc/uptime' || exit 1
 ok "标记已写入"

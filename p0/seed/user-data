@@ -13,6 +13,7 @@ package_update: true
 package_upgrade: false
 packages:
   - linux-modules-extra-generic
+  - isc-dhcp-client
 write_files:
   - path: /usr/local/sbin/wmodem-provision.sh
     permissions: '0755'

@@ -7,6 +7,7 @@
 > v3.2 变更：**路线 C 重估并升级为 P1 首选**（新增设计草图与四级验收阶梯）；G/形态三转为备选与对冲。
 > v3.3 变更：**P1 路线 C 骨架 PoC 全绿**（附录 B）——定制 VID/PID 复合设备枚举、option 驱动绑定、AT 经 USB 串口往返全部打通；路线 C 的可行性得到实测证实。
 > v3.4 变更：**P1续 全部完成（附录 C）**——复合设备 v2（3×option 串口 + RNDIS，in00-04 固定编号）、RNDIS 真实 DHCP + 互联网、置备自动化（黑名单+顺序置备）、快照兼容（VMSTATE_USB_DEVICE）。P1 全量 15/15 全绿 + 快照 6/6 全绿。P3 AI 闭环的全部前置条件就绪。
+> v3.5 变更：**P2 场景引擎落地（附录 D）**——AT 引擎升级为运营商状态机（SIM/注册/附着三轴 + URC），控制 API（JSON over unix socket），数据面联动（QMP set_link 真断网 + filter-buffer 弱网注入）；修复双 slirp 同网段冲突（wnet 独立 10.0.3.0/24）。**P2 验收 22/22 全绿。**
 
 ---
 
@@ -407,6 +408,32 @@ appliance VM(内跑复合 gadget) ──usbip(TCP)──► WSL2: modprobe vhci_
 | 3 | **option 的 new_id 是设备级匹配**（动态 ID 不做接口类检查）→ 会连 RNDIS 接口一起认领 | 绑定顺序控制：先 rndis_host 后 option，中间用 authorized=0/1 重新枚举 |
 | 4 | **loadvm × USB 设备：设备 vmsd 必须包含 `VMSTATE_USB_DEVICE`**（USB 核心状态 dev->state 不自动迁移）——缺失则恢复后第一个 USB 包触发 QEMU 断言崩溃 | 已加入 vmstate；自定义 USB 设备做快照的通用必修项 |
 | 5 | RNDIS 收包门控：rndis_host 设置 packet filter 后才进入 DATA_INITIALIZED；DHCP 验证需真实 dhclient（noble 云镜像精简无 dhclient，曾造成"假阳性"） | 置备后轮询就绪（60s 上限）；数据面验证用真实 DHCP |
+| 6 | **双 slirp 同网段冲突**：n0 与 wnet 都是 10.0.2.0/24 → guest 双接口重复 IP 10.0.2.15 → ARP/路由互相污染（neighbor FAILED、出站 EHOSTUNREACH） | wnet 独立网段 `net=10.0.3.0/24,dhcpstart=10.0.3.15` |
+| 7 | **authorized 重枚举未完成时写 new_id 会丢失绑定**（TCG 下重枚举 >10s）；多 AT 通道使用方（responder/引擎）互相挤占 QEMU chardev 单客户端 | 置备先等 `1-1:1.4` 回归再写 new_id，就绪轮询内重试；各验收脚本开头显式杀掉上一位 AT 通道占用者 |
+
+---
+
+## 附录 D：P2 场景引擎记录（WSL2，2026-11-08）
+
+**交付**：`p1/engine/wm_scenario_engine.py`（约 500 行 Python）——虚拟蜂窝模块的"运营商大脑"：
+
+- **运营商状态机**：SIM（absent/ready/pin）× 注册（none/searching/denied/home/roaming）× 数据附着（attached/detached）× 飞行模式四轴，状态切换自动发 URC（+CEREG / +CGEV，按 AT+CEREG/AT+CGEREP 订阅生效）
+- **AT 命令服务**：TS 27.007 子集（CPIN/CSQ/CESQ/CREG/CEREG/CGREG/COPS/CGATT/CGDCONT/CGACT/CGPADDR/CFUN/CGMI/CGMM/CGMR/CGSN/CIMI/ATE/ATI）+ 厂商扩展 AT+WMSTAT；SIM 缺失时按规范返回 +CME ERROR: 10
+- **场景控制 API**（unix socket，行 JSON）：`scenario(normal/no_sim/searching/denied/detached/offline)`、`set_signal`、`inject_urc`、`set_link`、`set_delay`、`status`
+- **数据面真联动**：detached/offline 场景经 QMP `set_link wnet off` 真断链路（不只改 AT 状态）；弱网经 QEMU `filter-buffer`（interval 定时冲刷）运行时注入延迟
+- **配套**：`engine_ctl.py`（控制 CLI）、`at_client.py`（guest 侧 AT 客户端，cmd/monitor 两模式）、`27_scenario_check.sh`（7 步验收）
+
+**验收场景**：normal 注册态 → 拔卡（CME ERROR:10 + URC +CEREG:0 + 引擎状态）→ 恢复 → detached（CGATT:0 + URC +CGEV: ME DETACH + QMP 真断链路 + HTTP 不可达）→ 恢复 + 弱网注入（filter-buffer 500ms：基线 0.071s → 弱网 1.86s → 清除回落 0.071s）→ 信号注入（set_signal→CSQ 联动）。**最终 P2_ALL_GREEN 22/22。**
+
+**本阶段新增经验（续）**：
+5. **QEMU 无 `filter-delay` 对象**（只有 filter-buffer/mirror/replay/rewriter）——弱网延迟用 `filter-buffer,interval=<µs>` 定时冲刷等效实现；写方案时的"记忆组件"必须对照源码树实测
+6. 控制面与数据面的断网要分层验证：`set_link off` 只影响指定 netdev——**默认路由必须真正指向被测接口**（curl --interface + 指向该网段网关的 default 路由），否则连通性断言全是假阳性
+
+**本阶段新增经验**：
+1. 双 slirp 同网段导致 guest 双接口 IP 冲突（见上表 #6）——多网卡虚拟机各 netdev 必须独立网段
+2. guest 侧并发读 tty 会互抢数据（URC 监听 vs 命令应答）——URC 捕获用限时监听窗口，与命令收发分时
+3. QEMU chardev socket 单客户端：responder 与引擎切换时必须先杀后连（各脚本入口统一处理）
+4. 场景引擎的 QMP 连接采用**按需连接**模式，不长期占用 qmp.sock（快照脚本需要它）
 
 **产物更新**：`p1/device/dev-wmodem.c`（v2 复合设备）、`p1/scripts/25_verify_all.sh`（全量验收：置备+枚举+in字段+多串口+RNDIS联网+AT）、`p1/scripts/26_snapshot_check.sh`（快照兼容全流程）、seed（置备脚本 runcmd 化）。
 

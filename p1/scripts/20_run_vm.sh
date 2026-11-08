@@ -41,7 +41,7 @@ docker run -d --name p1-vm --network host --user "$(id -u):$(id -g)" \
         -chardev socket,id=at0,path=/work/run/at0.sock,server=on,wait=off \
         -chardev null,id=diag \
         -chardev null,id=nmea \
-        -netdev user,id=wnet \
+        -netdev user,id=wnet,net=10.0.3.0/24,dhcpstart=10.0.3.15 \
         -device usb-wmodem,id=wm0,vendorid=0x1234,productid=0x5678,chardev=at0,serial1=diag,serial2=nmea,netdev=wnet \
         -drive file=run/disk.qcow2,if=virtio,format=qcow2 \
         -drive file=/p0/seed/seed.iso,if=virtio,format=raw,readonly=on \
