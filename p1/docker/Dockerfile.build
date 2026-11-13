@@ -1,6 +1,8 @@
-FROM ubuntu:24.04
+# QEMU 编译+运行时镜像（ubuntu 26.04 基座）
+# 构建:  docker build -t p1-qemu-build -f p1/docker/Dockerfile.build p1/docker
+FROM ubuntu:26.04
 ENV DEBIAN_FRONTEND=noninteractive
-# QEMU 9.2 aarch64-softmmu 最小构建依赖
+# 编译依赖 + 运行时依赖（本镜像同时作为虚拟机的运行容器）+ UEFI 固件
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         meson \
@@ -11,10 +13,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         ca-certificates \
         xz-utils \
+        curl \
         libglib2.0-dev \
         libpixman-1-dev \
         zlib1g-dev \
         libfdt-dev \
         libslirp-dev \
+        genisoimage \
         qemu-efi-aarch64 \
     && rm -rf /var/lib/apt/lists/*

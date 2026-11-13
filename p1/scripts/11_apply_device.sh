@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 将 usb-wmodem 设备模型接入 QEMU 源码树（幂等）
 set -euo pipefail
-cd /work/build/qemu-9.2.0
+cd /work/build/qemu-${QEMU_VER:-11.1.3}
 
 cp /work/device/dev-wmodem.c hw/usb/dev-wmodem.c
 

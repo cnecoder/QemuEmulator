@@ -24,9 +24,10 @@
 #include "qemu/cutils.h"
 #include "qemu/queue.h"
 #include "qemu/iov.h"
-#include "hw/qdev-properties.h"
-#include "hw/qdev-properties-system.h"
-#include "hw/usb.h"
+/* QEMU >= 10/11 include layout (hw/usb/usb.h, hw/core/qdev-properties*.h) */
+#include "hw/core/qdev-properties.h"
+#include "hw/core/qdev-properties-system.h"
+#include "hw/usb/usb.h"
 #include "migration/vmstate.h"
 #include "desc.h"
 #include "chardev/char-fe.h"
@@ -420,7 +421,7 @@ struct rndis_response {
 /* ------------------------------------------------------------------ */
 
 typedef struct WModemPort {
-    CharBackend cs;
+    CharFrontend cs;
     USBEndpoint *in_ep;
     uint8_t recv_buf[RECV_BUF];
     uint16_t recv_ptr;
@@ -1153,17 +1154,16 @@ static const VMStateDescription vmstate_usb_wmodem = {
     },
 };
 
-static Property wmodem_properties[] = {
+static const Property wmodem_properties[] = {
     DEFINE_PROP_CHR("chardev", USBWModemState, port[0].cs),
     DEFINE_PROP_CHR("serial1", USBWModemState, port[1].cs),
     DEFINE_PROP_CHR("serial2", USBWModemState, port[2].cs),
     DEFINE_PROP_UINT32("vendorid", USBWModemState, vendorid_prop, 0x1234),
     DEFINE_PROP_UINT32("productid", USBWModemState, productid_prop, 0x5678),
     DEFINE_NIC_PROPERTIES(USBWModemState, conf),
-    DEFINE_PROP_END_OF_LIST(),
 };
 
-static void usb_wmodem_class_init(ObjectClass *klass, void *data)
+static void usb_wmodem_class_init(ObjectClass *klass, const void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     USBDeviceClass *uc = USB_DEVICE_CLASS(klass);

@@ -21,14 +21,14 @@ bash "$(dirname "${BASH_SOURCE[0]}")/vm_stop.sh" 2>/dev/null || true
 rm -f run/qmp.sock run/at0.sock
 : > logs/serial.log
 
-QEMU_DEFAULT="$P1_DIR/build/qemu-9.2.0/build/qemu-system-aarch64"
+QEMU_DEFAULT="$P1_DIR/build/qemu-custom/qemu-system-aarch64"
 if [[ -n "${QEMU_CUSTOM:-}" ]]; then
     QDIR="$(dirname "$QEMU_CUSTOM")"
     QEMU="$QEMU_CUSTOM"
     QIMG="$QDIR/qemu-img"
 else
     QEMU="$QEMU_DEFAULT"
-    QIMG="$P1_DIR/build/qemu-9.2.0/build/qemu-img"
+    QIMG="$P1_DIR/build/qemu-custom/qemu-img"
 fi
 
 T0=$(date +%s)
@@ -42,7 +42,8 @@ if [[ "${QEMU_DIRECT:-0}" == "1" ]]; then
         -b "$P0_DIR/images/golden-noble-arm64.img" -F qcow2 run/disk.qcow2
     nohup $QEMU \
         -M virt -cpu max -accel tcg,thread=multi -smp 4 -m 2G \
-        -bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd \
+        -global virtio-pci.romfile= \
+        -bios "$P1_DIR/compat/QEMU_EFI.fd" \
         -display none \
         -serial file:logs/serial.log \
         -qmp unix:run/qmp.sock,server,nowait \
@@ -77,7 +78,8 @@ docker run -d --name p1-vm --network host --user "$(id -u):$(id -g)" \
         -cpu max \
         -accel tcg,thread=multi \
         -smp 4 -m 2G \
-        -bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd \
+        -global virtio-pci.romfile= \
+        -bios "$P1_DIR/compat/QEMU_EFI.fd" \
         -display none \
         -serial file:$P1_DIR/logs/serial.log \
         -qmp unix:$P1_DIR/run/qmp.sock,server,nowait \

@@ -30,13 +30,14 @@ RUN curl -fL -o /tmp/qemu.tar.xz https://download.qemu.org/qemu-9.2.0.tar.xz \
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        qemu-efi-aarch64 genisoimage openssh-client curl \
+        genisoimage openssh-client curl \
         python3 python3-pip iputils-ping \
         libglib2.0-0 libpixman-1-0 zlib1g libfdt1 libslirp0 \
     && pip install --break-system-packages pytest \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=qemu-build /opt/qemu-9.2.0/build/qemu-system-aarch64 /opt/qemu/qemu-system-aarch64
 COPY --from=qemu-build /opt/qemu-9.2.0/build/qemu-img /opt/qemu/qemu-img
+COPY p1/compat/QEMU_EFI.fd /lab/p1/compat/QEMU_EFI.fd
 COPY . /lab
 WORKDIR /lab/p1
 ENV PATH="/opt/qemu:${PATH}" \

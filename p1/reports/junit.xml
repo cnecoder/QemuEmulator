@@ -1,1 +1,577 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="32" time="447.767" timestamp="2026-11-09T02:20:51.553420+08:00" hostname="luo"><testcase classname="p1.tests.test_at_basic" name="test_at_ready" time="29.152" /><testcase classname="p1.tests.test_at_basic" name="test_cpin_ready" time="13.330" /><testcase classname="p1.tests.test_at_basic" name="test_manufacturer_model_revision" time="41.660" /><testcase classname="p1.tests.test_at_basic" name="test_imei" time="6.053" /><testcase classname="p1.tests.test_at_basic" name="test_signal_quality_format" time="6.226" /><testcase classname="p1.tests.test_at_basic" name="test_cereg_registered_home" time="6.144" /><testcase classname="p1.tests.test_at_basic" name="test_cgatt_attached" time="6.125" /><testcase classname="p1.tests.test_at_basic" name="test_cops_operator" time="6.113" /><testcase classname="p1.tests.test_at_basic" name="test_cgdcont_context" time="6.068" /><testcase classname="p1.tests.test_at_basic" name="test_cgpaddr_needs_attached" time="6.183" /><testcase classname="p1.tests.test_at_basic" name="test_unknown_command_error" time="6.161" /><testcase classname="p1.tests.test_at_basic" name="test_echo_toggle" time="35.378" /><testcase classname="p1.tests.test_at_basic" name="test_vendor_extension_wmstat" time="6.214" /><testcase classname="p1.tests.test_data_plane" name="test_netif_is_usb_device_child" time="3.626" /><testcase classname="p1.tests.test_data_plane" name="test_dhcp_lease_from_cellular" time="10.095" /><testcase classname="p1.tests.test_data_plane" name="test_gateway_reachable" time="3.507" /><testcase classname="p1.tests.test_data_plane" name="test_internet_via_rndis_interface" time="7.446" /><testcase classname="p1.tests.test_data_plane" name="test_traffic_counters_increase" time="11.066" /><testcase classname="p1.tests.test_device" name="test_custom_vid_pid_enumerated" time="3.540" /><testcase classname="p1.tests.test_device" name="test_in_field_layout" time="47.146" /><testcase classname="p1.tests.test_device" name="test_three_serial_ports_bound_to_option" time="3.530" /><testcase classname="p1.tests.test_device" name="test_rndis_netif_present" time="3.636" /><testcase classname="p1.tests.test_scenarios" name="test_scenario_no_sim" time="14.141" /><testcase classname="p1.tests.test_scenarios" name="test_no_sim_recovery" time="15.158" /><testcase classname="p1.tests.test_scenarios" name="test_scenario_searching" time="8.020" /><testcase classname="p1.tests.test_scenarios" name="test_scenario_denied" time="8.013" /><testcase classname="p1.tests.test_scenarios" name="test_scenario_detached_real_link_drop" time="42.289" /><testcase classname="p1.tests.test_scenarios" name="test_scenario_offline_airplane" time="26.251" /><testcase classname="p1.tests.test_scenarios" name="test_urc_delivery" time="7.076" /><testcase classname="p1.tests.test_scenarios" name="test_signal_injection" time="13.506" /><testcase classname="p1.tests.test_scenarios" name="test_weak_network_delay" time="42.866" /><testcase classname="p1.tests.test_scenarios" name="test_normal_scenario_sets_everything" time="2.006" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="32" failures="0" skipped="0" tests="32" time="75.706" timestamp="2026-11-13T02:15:31.692683+08:00" hostname="luo"><testcase classname="p1.tests.test_at_basic" name="test_at_ready" time="75.576"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_cpin_ready" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_manufacturer_model_revision" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_imei" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_signal_quality_format" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_cereg_registered_home" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_cgatt_attached" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_cops_operator" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_cgdcont_context" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_cgpaddr_needs_attached" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_unknown_command_error" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_echo_toggle" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_at_basic" name="test_vendor_extension_wmstat" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_data_plane" name="test_netif_is_usb_device_child" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_data_plane" name="test_dhcp_lease_from_cellular" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_data_plane" name="test_gateway_reachable" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_data_plane" name="test_internet_via_rndis_interface" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_data_plane" name="test_traffic_counters_increase" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_device" name="test_custom_vid_pid_enumerated" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_device" name="test_in_field_layout" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_device" name="test_three_serial_ports_bound_to_option" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_device" name="test_rndis_netif_present" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_scenario_no_sim" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_no_sim_recovery" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_scenario_searching" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_scenario_denied" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_scenario_detached_real_link_drop" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_scenario_offline_airplane" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_urc_delivery" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_signal_injection" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_weak_network_delay" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase><testcase classname="p1.tests.test_scenarios" name="test_normal_scenario_sets_everything" time="0.000"><error message="failed on setup with &quot;AssertionError: envctl provision 失败: n cmd_provision&#10;      subprocess.run(SSH_BASE + [&quot;sudo&quot;, &quot;tee&quot;, &quot;/tmp/at_client.py&quot;],&#10;    File &quot;/usr/lib/python3.12/subprocess.py&quot;, line 571, in run&#10;      raise CalledProcessError(retcode, process.args,&#10;[+4 more lines; full report in element text]">@pytest.fixture(scope="session", autouse=True)
+    def lab():
+        """环境拉起（幂等）：虚拟机在位 → 置备 → 场景引擎 → RNDIS 就绪"""
+        if "Up" not in sh(["docker", "ps", "--filter", "name=p1-vm",
+                           "--format", "{{.Status}}"]).stdout:
+            r = sh(ENVCTL + ["up"], timeout=1800)
+            assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
+        r = sh(ENVCTL + ["provision"], timeout=300)
+&gt;       assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
+E       AssertionError: envctl provision 失败: n cmd_provision
+E             subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],
+E           File "/usr/lib/python3.12/subprocess.py", line 571, in run
+E             raise CalledProcessError(retcode, process.args,
+E         subprocess.CalledProcessError: Command '['ssh', '-i', '/home/luo/Project/Emulator/p0/keys/id_ed25519', '-p', '2223', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', 'test@127.0.0.1', 'sudo', 'tee', '/tmp/at_client.py']' returned non-zero exit status 255.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/python3', '/home/luo/Project/Emulator/p1/envctl.py', 'provision'], returncode=1, stdout='', stderr='Traceback (most recent call last):\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 234, in &lt;module&gt;\n    main()\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 225, in main\n    {"up": cmd_up, "provision": cmd_provision, "verify": cmd_verify,\n  File "/home/luo/Project/Emulator/p1/envctl.py", line 92, in cmd_provision\n    subprocess.run(SSH_BASE + ["sudo", "tee", "/tmp/at_client.py"],\n  File "/usr/lib/python3.12/subprocess.py", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command \'[\'ssh\', \'-i\', \'/home/luo/Project/Emulator/p0/keys/id_ed25519\', \'-p\', \'2223\', \'-o\', \'StrictHostKeyChecking=no\', \'-o\', \'UserKnownHostsFile=/dev/null\', \'-o\', \'LogLevel=ERROR\', \'test@127.0.0.1\', \'sudo\', \'tee\', \'/tmp/at_client.py\']\' returned non-zero exit status 255.\n').returncode
+
+p1/tests/conftest.py:78: AssertionError</error></testcase></testsuite></testsuites>
