@@ -24,3 +24,14 @@ p0/keys/known_hosts.old
 *.swp
 # cloud-init seed ISO（可由 02_make_seed.sh 重建）
 p0/seed/seed.iso
+
+# ===== p2 独立集群运行时产物（均可由 ctl.py 重建） =====
+p2/images/
+p2/build/
+p2/src/
+p2/run/
+p2/logs/
+p2/keys/id_ed25519
+p2/keys/id_ed25519.pub
+p2/keys/known_hosts*
+p2/seed/*.iso

@@ -1,0 +1,38 @@
+#cloud-config
+hostname: arm64-p2-a
+users:
+  - name: test
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    lock_passwd: false
+    ssh_authorized_keys:
+      - __PUBKEY__
+ssh_pwauth: false
+package_update: true
+packages: [iperf3]
+write_files:
+  - path: /etc/netplan/50-p2.yaml
+    permissions: '0600'
+    content: |
+      network:
+        version: 2
+        ethernets:
+          enp0s1:
+            dhcp4: true
+          enp0s3:
+            addresses: [10.0.100.1/24]
+            routes:
+              - {to: 10.0.101.0/24, via: 10.0.100.3}
+              - {to: 10.0.102.0/24, via: 10.0.100.3}
+              - {to: 10.9.0.0/16, via: 10.0.100.3}
+          enp0s4:
+            addresses: [10.0.200.1/24]
+            routes:
+              - {to: 10.0.201.0/24, via: 10.0.200.3}
+              - {to: 10.0.202.0/24, via: 10.0.200.3}
+              - {to: 10.9.0.0/16, via: 10.0.200.3}
+runcmd:
+  - netplan apply
+  - touch /var/lib/p2-provisioned
+final_message: "P2_A_PROVISIONED after $UPTIME seconds"

@@ -1,0 +1,8 @@
+# server 容器: ubuntu 26.04 原生服务（透传 relay 参考实现 + 业务 server 槽位）
+FROM ubuntu:26.04
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 iproute2 iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+COPY server-setup.sh /server-setup.sh
+COPY wm_relay.py /wm_relay.py
+ENTRYPOINT ["bash", "/server-setup.sh"]
