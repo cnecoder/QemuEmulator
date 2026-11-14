@@ -1,0 +1,5 @@
+# 设备容器镜像: 基于 p1-qemu-build，补齐容器内组网工具（tap/网桥搭建）
+FROM p1-qemu-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        iproute2 \
+    && rm -rf /var/lib/apt/lists/*

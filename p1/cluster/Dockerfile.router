@@ -1,0 +1,7 @@
+# 路由容器（损伤中心）: L3 转发 + tc netem（一期先只做转发+冒烟，损伤 API 二期）
+FROM ubuntu:26.04
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        iproute2 iptables \
+    && rm -rf /var/lib/apt/lists/*
+COPY router-setup.sh /router-setup.sh
+ENTRYPOINT ["bash", "/router-setup.sh"]

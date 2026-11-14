@@ -1,0 +1,7 @@
+# server 容器: ubuntu:26.04 原生服务（一期：透传 relay 参考实现；业务 server 二期替换/叠加）
+FROM ubuntu:26.04
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3 iproute2 \
+    && rm -rf /var/lib/apt/lists/*
+COPY wm_relay.py /wm_relay.py
+ENTRYPOINT ["python3", "-u", "/wm_relay.py"]

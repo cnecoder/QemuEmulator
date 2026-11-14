@@ -1,0 +1,118 @@
+# 四容器集群（一期·可行性）: 两台设备 + 路由容器（中心/损伤）+ server 容器（原生服务）
+#
+# 拓扑（L3 路由）:
+#   VM-A.nic1 10.0.100.1 ──seg-a1── router.eth-a1 .3
+#   VM-B.nic1 10.0.101.2 ──seg-b1── router.eth-b1 .3
+#   server .2 ──seg-s1── router.eth-s1 .1          （path1: 10.0.100/101/102.0/24）
+#   VM-A.nic2 10.0.200.1 ──seg-a2── router.eth-a2 .3
+#   VM-B.nic2 10.0.201.2 ──seg-b2── router.eth-b2 .3
+#   server .2 ──seg-s2── router.eth-s2 .1          （path2: 10.0.200/201/202.0/24）
+#
+# 环境变量（由 up.sh 导出）: P1_DIR P0_DIR HOST_UID HOST_GID
+name: p1cluster
+services:
+  router:
+    container_name: p1-router
+    build:
+      context: .
+      dockerfile: Dockerfile.router
+    cap_add: [NET_ADMIN]
+    sysctls:
+      net.ipv4.ip_forward: "1"
+    environment:
+      - STRICT_HUB=${STRICT_HUB:-0}     # 1=A/B 子网间直通转发丢弃（强制互传只走 server）
+    networks:
+      seg-a1: {ipv4_address: 10.0.100.3}
+      seg-s1: {ipv4_address: 10.0.102.1}
+      seg-b1: {ipv4_address: 10.0.101.3}
+      seg-a2: {ipv4_address: 10.0.200.3}
+      seg-s2: {ipv4_address: 10.0.202.1}
+      seg-b2: {ipv4_address: 10.0.201.3}
+
+  server:
+    container_name: p1-server
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    cap_add: [NET_ADMIN]          # 置备回程路由用（up.sh docker exec ip route）
+    networks:
+      seg-s1: {ipv4_address: 10.0.102.2}
+      seg-s2: {ipv4_address: 10.0.202.2}
+
+  vm-a:
+    container_name: p1-vm-a
+    build:
+      context: .
+      dockerfile: Dockerfile.vm
+    cap_add: [NET_ADMIN]
+    devices: ["/dev/net/tun"]
+    depends_on: [router, server]
+    working_dir: ${P1_DIR}
+    command: ["bash", "${P1_DIR}/cluster/entrypoint-vm.sh"]
+    environment:
+      - P1_DIR=${P1_DIR}
+      - P0_DIR=${P0_DIR}
+      - HOST_UID=${HOST_UID}
+      - HOST_GID=${HOST_GID}
+      - ROLE=a
+      - SSH_PORT=2223
+      - SEG_L1=10.0.100.
+      - SEG_L2=10.0.200.
+      - MGMT_MAC=52:54:00:12:34:56
+      - L1_MAC=52:54:00:a1:00:01
+      - L2_MAC=52:54:00:a2:00:01
+      - DISK=${P1_DIR}/run/disk-a.qcow2
+    volumes:
+      - ${P1_DIR}:${P1_DIR}
+      - ${P0_DIR}:${P0_DIR}
+    ports:
+      - "127.0.0.1:2223:2223"
+    networks:
+      seg-a1: {ipv4_address: 10.0.100.10}
+      seg-a2: {ipv4_address: 10.0.200.10}
+
+  vm-b:
+    container_name: p1-vm-b
+    build:
+      context: .
+      dockerfile: Dockerfile.vm
+    cap_add: [NET_ADMIN]
+    devices: ["/dev/net/tun"]
+    depends_on: [router, server]
+    working_dir: ${P1_DIR}
+    command: ["bash", "${P1_DIR}/cluster/entrypoint-vm.sh"]
+    environment:
+      - P1_DIR=${P1_DIR}
+      - P0_DIR=${P0_DIR}
+      - HOST_UID=${HOST_UID}
+      - HOST_GID=${HOST_GID}
+      - ROLE=b
+      - SSH_PORT=2323
+      - SEG_L1=10.0.101.
+      - SEG_L2=10.0.201.
+      - MGMT_MAC=52:54:00:12:34:66
+      - L1_MAC=52:54:00:b1:00:01
+      - L2_MAC=52:54:00:b2:00:01
+      - DISK=${P1_DIR}/run/disk-b.qcow2
+    volumes:
+      - ${P1_DIR}:${P1_DIR}
+      - ${P0_DIR}:${P0_DIR}
+    ports:
+      - "127.0.0.1:2323:2323"
+    networks:
+      seg-b1: {ipv4_address: 10.0.101.10}
+      seg-b2: {ipv4_address: 10.0.201.10}
+
+networks:
+  seg-a1:
+    ipam: {config: [{subnet: 10.0.100.0/24, gateway: 10.0.100.254}]}
+  seg-b1:
+    ipam: {config: [{subnet: 10.0.101.0/24, gateway: 10.0.101.254}]}
+  seg-s1:
+    ipam: {config: [{subnet: 10.0.102.0/24, gateway: 10.0.102.254}]}
+  seg-a2:
+    ipam: {config: [{subnet: 10.0.200.0/24, gateway: 10.0.200.254}]}
+  seg-b2:
+    ipam: {config: [{subnet: 10.0.201.0/24, gateway: 10.0.201.254}]}
+  seg-s2:
+    ipam: {config: [{subnet: 10.0.202.0/24, gateway: 10.0.202.254}]}
