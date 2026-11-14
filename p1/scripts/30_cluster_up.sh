@@ -65,6 +65,7 @@ start_device() {
         -chardev null,id=diag \
         -chardev null,id=nmea \
         -netdev user,id=cell,net=10.0.3.0/24,dhcpstart=10.0.3.15 \
+        -device qemu-xhci \
         -device usb-wmodem,id=wm0,vendorid=0x1234,productid=0x5678,chardev=at0,serial1=diag,serial2=nmea,netdev=cell \
         -device qemu-xhci \
         -netdev socket,id=l1,udp=127.0.0.1:$L1_UDP,localaddr=127.0.0.1:$L1_LOCAL \
@@ -113,9 +114,9 @@ done
 pkill -f "engine-a.sock" 2>/dev/null || true
 pkill -f "engine-b.sock" 2>/dev/null || true
 sleep 0.5
-nohup python3 engine/wm_scenario_engine.py run/at0-a.sock run/engine-a.sock run/qmp-a.sock \
+nohup python3 -u engine/wm_scenario_engine.py run/at0-a.sock run/engine-a.sock run/qmp-a.sock \
     > logs/engine-a.log 2>&1 &
-nohup python3 engine/wm_scenario_engine.py run/at0-b.sock run/engine-b.sock run/qmp-b.sock \
+nohup python3 -u engine/wm_scenario_engine.py run/at0-b.sock run/engine-b.sock run/qmp-b.sock \
     > logs/engine-b.log 2>&1 &
 sleep 2
 
@@ -126,7 +127,7 @@ cfg_ip() {  # <ssh_port> <mac> <cidr>
     IF=\$(ip -o link | grep -i '$2' | cut -d: -f2 | tr -d ' ')
     sudo ip link set \$IF up
     sudo ip addr add $3 dev \$IF 2>/dev/null || true
-    echo \"  \$(basename \$(hostname)) \$IF -> $3\""
+    echo \"  \$IF -> $3\""
 }
 cfg_ip 2223 "a1:00:01" "10.0.100.1/24"
 cfg_ip 2323 "b1:00:01" "10.0.100.2/24"

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "87b26388-8172-4b2d-9a68-564efc5be8cb",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/luo/Project/Emulator/.archify/architecture-cluster-20261114-170642/candidate.json",
+  "output": "/home/luo/Project/Emulator/.archify/architecture-cluster-20261114-170642/cluster.html",
+  "specification": {
+    "sha256": "caee1a36575e92412baea660e5584f0e999561b4d6d23d5be6b36eff2566dcb5",
+    "bytes": 9140
+  },
+  "artifact": {
+    "sha256": "9b0e6317854d31287e3d06b75c025604f5e21b1837fcb23386c9f3f7b23673f0",
+    "bytes": 839990
+  }
+}

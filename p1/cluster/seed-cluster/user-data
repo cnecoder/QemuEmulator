@@ -1,0 +1,16 @@
+#cloud-config
+hostname: arm64-cluster-b
+users:
+  - name: test
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    lock_passwd: false
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKS9rXw75IUFp5HsasMmyRR90aCxxpf247sdmmeAPJd7 p0-test
+ssh_pwauth: false
+package_update: false
+package_upgrade: false
+runcmd:
+  - touch /var/lib/cluster-b-done
+final_message: "CLUSTER_B_DONE after $UPTIME seconds"

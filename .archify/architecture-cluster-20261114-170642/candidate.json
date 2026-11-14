@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "四容器集群：双设备 + 路由容器（损伤中心）+ 原生 Server",
+    "subtitle": "一期可行性已验证 · check_p1.py 9/9 FEASIBILITY_GREEN（QEMU tap 真以太网 + L3 路由 + tc netem + 透传 relay）",
+    "locale": "zh-CN",
+    "output": ".archify/architecture-cluster-20261114-170642/cluster.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/cnecoder/QemuEmulator",
+      "provider": "github",
+      "revision": "b308c2421f3a11b975d4cf0e115cfda69e7a68ca"
+    },
+    "views": [
+      { "id": "data", "label": "数据面", "focus": ["vm-a", "vm-b", "router", "server", "net-a1", "net-a2", "net-b1", "net-b2", "net-s1", "net-s2"], "note": "透传路径与 L3 直通；损伤=路由容器六腿 netem，端到端时延≈各腿之和" },
+      { "id": "control", "label": "控制面", "focus": ["host", "fixfw", "net-a1", "vm-a", "vm-b", "router"], "note": "up.sh 编排+防火墙放行；SSH 直连 guest 链路 IP 管理；二期 link_ctl→tc" },
+      { "id": "parts", "label": "容器组成", "focus": ["vm-a", "vm-b", "router", "server"], "note": "四容器内部组成见下方卡片与各节点副标签" }
+    ]
+  },
+  "components": [
+    { "id": "host", "type": "external", "label": "宿主操作面（WSL2）", "sublabel": "up.sh · compose · check_p1.py", "pos": [40, 40], "size": [180, 64], "sources": [
+      { "path": "p1/cluster/up.sh", "label": "编排/置备入口" },
+      { "path": "p1/cluster/check_p1.py", "label": "9 断言验收" }
+    ] },
+    { "id": "fixfw", "type": "security", "label": "fix-firewall.sh", "sublabel": "宿主 raw 表放行 10.0.0.0/8", "pos": [290, 40], "size": [180, 64], "sources": [
+      { "path": "p1/cluster/fix-firewall.sh", "label": "桥内互访放行" }
+    ] },
+    { "id": "vm-a", "type": "backend", "label": "设备容器 A · p1-vm-a", "sublabel": "QEMU 11.1.3 TCG · VM-A arm64", "tag": "tap 上桥", "pos": [40, 200], "size": [180, 76], "sources": [
+      { "path": "p1/cluster/entrypoint-vm.sh", "label": "tap/网桥+降权启动" },
+      { "path": "p1/cluster/netplan-a.yaml", "label": "链路自配置" }
+    ] },
+    { "id": "vm-b", "type": "backend", "label": "设备容器 B · p1-vm-b", "sublabel": "QEMU 11.1.3 TCG · VM-B arm64", "tag": "tap 上桥", "pos": [40, 435], "size": [180, 76], "sources": [
+      { "path": "p1/cluster/entrypoint-vm.sh", "label": "tap/网桥+降权启动" },
+      { "path": "p1/cluster/netplan-b.yaml", "label": "链路自配置" }
+    ] },
+    { "id": "router", "type": "backend", "label": "路由容器 · p1-router", "sublabel": "ubuntu 26.04 · ip_forward L3", "tag": "损伤中心 netem ×6 腿", "pos": [520, 195], "size": [190, 88], "sources": [
+      { "path": "p1/cluster/router-setup.sh", "label": "转发与策略" },
+      { "path": "p1/cluster/Dockerfile.router", "label": "镜像组成" }
+    ] },
+    { "id": "server", "type": "backend", "label": "服务容器 · p1-server", "sublabel": "ubuntu 26.04 · wm_relay.py 透传", "tag": "relay :9001/9002 · :9101/9102", "pos": [1000, 195], "size": [190, 88], "sources": [
+      { "path": "p1/cluster/wm_relay.py", "label": "透传 relay 实现" },
+      { "path": "p1/cluster/Dockerfile.server", "label": "镜像组成" }
+    ] },
+    { "id": "net-a1", "type": "cloud", "label": "seg-a1", "sublabel": "10.0.100.0/24", "pos": [280, 170], "size": [160, 64], "sources": [
+      { "path": "p1/cluster/docker-compose.yml", "label": "网络定义" }
+    ] },
+    { "id": "net-a2", "type": "cloud", "label": "seg-a2", "sublabel": "10.0.200.0/24", "pos": [280, 272], "size": [160, 64], "sources": [
+      { "path": "p1/cluster/docker-compose.yml", "label": "网络定义" }
+    ] },
+    { "id": "net-b1", "type": "cloud", "label": "seg-b1", "sublabel": "10.0.101.0/24", "pos": [280, 400], "size": [160, 64], "sources": [
+      { "path": "p1/cluster/docker-compose.yml", "label": "网络定义" }
+    ] },
+    { "id": "net-b2", "type": "cloud", "label": "seg-b2", "sublabel": "10.0.201.0/24", "pos": [280, 502], "size": [160, 64], "sources": [
+      { "path": "p1/cluster/docker-compose.yml", "label": "网络定义" }
+    ] },
+    { "id": "net-s1", "type": "cloud", "label": "seg-s1", "sublabel": "10.0.102.0/24", "pos": [760, 170], "size": [160, 64], "sources": [
+      { "path": "p1/cluster/docker-compose.yml", "label": "网络定义" }
+    ] },
+    { "id": "net-s2", "type": "cloud", "label": "seg-s2", "sublabel": "10.0.202.0/24", "pos": [760, 272], "size": [160, 64], "sources": [
+      { "path": "p1/cluster/docker-compose.yml", "label": "网络定义" }
+    ] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Docker 域（6 独立网段 · 静态 IP）", "wraps": ["vm-a", "vm-b", "router", "server", "net-a1", "net-a2", "net-b1", "net-b2", "net-s1", "net-s2"] }
+  ],
+  "connections": [
+    { "id": "d-va-a1", "from": "vm-a", "to": "net-a1", "label": "tap 上桥", "variant": "emphasis" },
+    { "id": "d-a1-r", "from": "net-a1", "to": "router", "label": "损伤 a1", "variant": "emphasis" },
+    { "id": "d-r-s1", "from": "router", "to": "net-s1", "label": "损伤 s1", "variant": "emphasis" },
+    { "id": "d-s1-srv", "from": "net-s1", "to": "server", "label": "relay 接入", "variant": "emphasis" },
+    { "id": "d-r-b1", "from": "router", "to": "net-b1", "label": "损伤 b1", "variant": "emphasis" },
+    { "id": "d-b1-vb", "from": "net-b1", "to": "vm-b", "label": "上桥", "variant": "emphasis" },
+    { "id": "d-va-a2", "from": "vm-a", "to": "net-a2", "label": "tap 上桥", "variant": "default", "fromSide": "bottom", "toSide": "left" },
+    { "id": "d-a2-r", "from": "net-a2", "to": "router", "label": "损伤 a2", "variant": "default" },
+    { "id": "d-r-s2", "from": "router", "to": "net-s2", "label": "损伤 s2", "variant": "default" },
+    { "id": "d-s2-srv", "from": "net-s2", "to": "server", "label": "接入", "variant": "default" },
+    { "id": "d-r-b2", "from": "router", "to": "net-b2", "label": "损伤 b2", "variant": "default" },
+    { "id": "d-b2-vb", "from": "net-b2", "to": "vm-b", "variant": "default" },
+    { "id": "c-host-va", "from": "host", "to": "vm-a", "label": "SSH 管理", "variant": "dashed" },
+    { "id": "c-host-fw", "from": "host", "to": "fixfw", "label": "调用", "variant": "dashed" },
+    { "id": "c-fw-a1", "from": "fixfw", "to": "net-a1", "label": "放行", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "容器组成", "items": [
+      "设备容器 p1-vm-a/b：entrypoint 以 root 搭 tap+网桥 → setpriv 降权 exec QEMU（-netdev tap）；VM 内 enp0s1=mgmt slirp(DHCP)、enp0s3=link1、enp0s4=link2，netplan 烘盘开机自配置",
+      "路由容器 p1-router：ubuntu 26.04 + ip_forward，六腿 a1/b1/s1/a2/b2/s2 各为独立损伤点（netem 双向：egress + ifb 镜像），STRICT_HUB 可选禁 A↔B 直通",
+      "服务容器 p1-server：wm_relay.py 固定角色端口对（path1 :9001/:9002、path2 :9101/:9102）字节级互转，业务 server 可直接替换/叠加"
+    ] },
+    { "dot": "emerald", "title": "数据面", "items": [
+      "透传路径：A → 损伤a1 → router → 损伤s1 → relay → 损伤s1 → router → 损伤b1 → B（两设备各连 server 的不同角色端口）",
+      "L3 直通：A → router → B 不经 server（默认开启，策略可关）；两条 path 物理隔离，双链路冗余测试可用",
+      "损伤叠加语义：包每穿一腿受一次该方向损伤，端到端 RTT ≈ 各腿之和（一期冒烟：0.76ms → 200.8ms → 清除 0.88ms）"
+    ] },
+    { "dot": "violet", "title": "控制面", "items": [
+      "up.sh：docker compose 编排（4 services + 6 网段静态 IP）→ fix-firewall → 等 SSH → server 回程路由",
+      "check_p1.py：9 断言验收，SSH 直连 10.0.100.1 / 10.0.101.2（不经 slirp 发布口）",
+      "二期：wm_router_ctl.py → tc netem 控制面（linkd.sock 行 JSON 兼容 + leg 单腿粒度），link_ctl.py 原样可用"
+    ] },
+    { "dot": "amber", "title": "网络规划", "items": [
+      "path1：seg-a1 10.0.100.0/24（A=.1，router=.3）· seg-b1 10.0.101.0/24（B=.2，router=.3）· seg-s1 10.0.102.0/24（server=.2，router=.1）",
+      "path2：seg-a2 10.0.200.0/24 · seg-b2 10.0.201.0/24 · seg-s2 10.0.202.0/24（同构，server=.2）",
+      "路由：设备按明细 /24 路由指向 router 网关，server 回程路由按 path 指向 router 对应腿（保证对称）"
+    ] },
+    { "dot": "rose", "title": "实测坑（已固化到脚本）", "items": [
+      "容器内网桥端口的 IP 必须挪到 bridge 设备，否则容器协议栈 ARP 断、docker 端口发布失效",
+      "docker 28 在 raw PREROUTING 按“容器 IP 必须从自家网桥进来”丢包 → fix-firewall.sh 对 10.0.0.0/8 放行",
+      "QEMU slirp hostfwd 对外部连接有数据中继缺陷（握手通、数据不通）→ 管理面改走 guest 链路 IP 直连",
+      "主盘 netplan 绑定 mgmt MAC，克隆盘换 MAC 即断网 → 设备自配置 netplan 烘盘（netplan-a/b.yaml）"
+    ] }
+  ]
+}

@@ -34,7 +34,7 @@ def cmd_roundtrip(cmd, timeout=5.0):
         while payload and time.time() < end:
             try:
                 payload = payload[os.write(fd, payload):]
-            except BlockingIOError:
+            except (BlockingIOError, InterruptedError):
                 time.sleep(0.05)
         buf = b""
         # 先收掉已缓冲的数据（URC 等），避免被当作下一命令响应的一部分
@@ -49,7 +49,11 @@ def cmd_roundtrip(cmd, timeout=5.0):
         while time.time() < end:
             r, _, _ = select.select([fd], [], [], 0.1)
             if r:
-                buf += os.read(fd, 4096)
+                try:
+                    chunk = os.read(fd, 4096)
+                except (BlockingIOError, InterruptedError):
+                    chunk = b""
+                buf += chunk
                 quiet = 0.0
             else:
                 quiet += 0.1

@@ -48,7 +48,12 @@ def at(cmd, timeout=45, retries=2):
     for i in range(retries + 1):
         try:
             last = guest(f"sudo python3 /tmp/at_client.py cmd '{cmd}'", timeout)
-            if any(k in last for k in ("OK", "ERROR", "+CME ERROR")):
+            if any(k in last for k in ("OK", "+CME ERROR")):
+                return last
+            if "ERROR" in last and i < retries:
+                time.sleep(2)   # 裸 ERROR 视为瞬态错位，重试吸收
+                continue
+            if last.strip():
                 return last
         except subprocess.TimeoutExpired:
             last = f"[timeout on {cmd}]"
@@ -76,8 +81,8 @@ def lab():
         assert r.returncode == 0, f"envctl up 失败: {r.stdout[-500:]}"
     r = sh(ENVCTL + ["provision"], timeout=300)
     assert r.returncode == 0, f"envctl provision 失败: {r.stderr[-500:]}"
-    if not _engine_alive():
-        sh(ENVCTL + ["engine", "on"], timeout=60)
+    sh(ENVCTL + ["engine", "off"], timeout=30)   # 强制重启：清 ring 与残留状态
+    sh(ENVCTL + ["engine", "on"], timeout=60)
     engine({"cmd": "scenario", "name": "normal"})
     # RNDIS 数据面就绪（DHCP）
     if rndis_netif():
@@ -99,6 +104,10 @@ def modem():
     """场景引擎句柄；用例结束自动恢复 normal 态"""
     yield _ModemCtl()
     engine({"cmd": "scenario", "name": "normal"})
+    try:
+        guest("sudo python3 /tmp/at_client.py cmd 'ATE0'", timeout=30)
+    except Exception:
+        pass
     time.sleep(1)
 
 

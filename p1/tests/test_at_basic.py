@@ -56,6 +56,7 @@ def test_unknown_command_error():
 def test_echo_toggle():
     assert "OK" in at("ATE0")
     assert "OK" in at("ATE1")
+    assert "OK" in at("ATE0")   # 恢复默认，避免污染后续用例
 
 
 def test_vendor_extension_wmstat():
