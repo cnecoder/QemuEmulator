@@ -35,3 +35,6 @@ p2/keys/id_ed25519
 p2/keys/id_ed25519.pub
 p2/keys/known_hosts*
 p2/seed/*.iso
+
+# p2 python 缓存
+p2/**/__pycache__/
